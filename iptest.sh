@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#V2 script verificare ip
 validate_ip() {
     local name=$1
     local ip=$2
