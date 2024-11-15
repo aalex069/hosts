@@ -35,3 +35,5 @@ while read -r ip host; do
     validate_ip "$host" "$ip" "$dns_server"
 done < /etc/hosts
 
+
+# vlad a fost aici
