@@ -1,19 +1,37 @@
 #!/bin/bash
 
-#am presupus ca nu trebie verifiat localhost
-counter=0
-cat /etc/hosts | while read -r ip name _ && [[ -n "$name" && -n "$ip" ]] 
-do
-	((counter++))
-	if [ $counter -le 2 ]
-	then
-		continue
-	fi
-	true_ip=$(nslookup "$name" 2>/dev/null | grep -m 1 -oP '(?<=Address: ).*')
-        
-        if [ "$true_ip" != "$ip" ]; then
-            echo "Bogus IP for $name in /etc/hosts!"
-        else
-            echo "$ip is the IP for $name"
-	fi
-done
+validate_ip() {
+    local name=$1
+    local ip=$2
+    local dns_server=$3
+
+    if [ -z "$ip" ] || [[ "$ip" == \#* ]]; then
+        return
+    fi
+
+    nslookup "$name" "$dns_server" | while read -r line; do
+        if echo "$line" | grep -q "Name:"; then
+            read -r address_line
+            read -r label good_ip <<< "$address_line"
+            if [ "$ip" != "$good_ip" ]; then
+                echo "Bogus IP for $name in /etc/hosts!"
+            fi
+            break
+        fi
+    done
+}
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <dns_server>"
+    exit 1
+fi
+
+dns_server=$1
+
+while read -r ip host; do
+    if [ -z "$ip" ] || [[ "$ip" == \#* ]]; then
+        continue
+    fi
+    validate_ip "$host" "$ip" "$dns_server"
+done < /etc/hosts
+
